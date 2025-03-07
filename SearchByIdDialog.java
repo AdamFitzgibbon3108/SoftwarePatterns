@@ -22,77 +22,89 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
 
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.*;
+import javax.swing.border.EtchedBorder;
+
 public class SearchByIdDialog extends JDialog implements ActionListener {
-	EmployeeDetails parent;
-	JButton search, cancel;
-	JTextField searchField;
-	// constructor for SearchByIdDialog 
-	public SearchByIdDialog(EmployeeDetails parent) {
-		setTitle("Search by Surname");
-		setModal(true);
-		this.parent = parent;
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    private final EmployeeDetails parent;
+    private JButton searchButton;
+	private JButton cancelButton;
+    private JTextField searchField;
 
-		JScrollPane scrollPane = new JScrollPane(searchPane());
-		setContentPane(scrollPane);
+    // Constructor for SearchByIdDialog
+    public SearchByIdDialog(EmployeeDetails parent) {
+        super(parent, "Search by ID", true);
+        this.parent = parent;
+		this.searchButton = new JButton();
+		this.cancelButton = new JButton();
+		this.searchField = new JTextField();
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-		getRootPane().setDefaultButton(search);
-		
-		setSize(500, 190);
-		setLocation(350, 250);
-		setVisible(true);
-	}// end SearchByIdDialog
-	
-	// initialize search container
-	public Container searchPane() {
-		JPanel searchPanel = new JPanel(new GridLayout(3, 1));
-		JPanel textPanel = new JPanel();
-		JPanel buttonPanel = new JPanel();
-		JLabel searchLabel;
+        JScrollPane scrollPane = new JScrollPane(createSearchPane());
+        setContentPane(scrollPane);
+        getRootPane().setDefaultButton(searchButton);
 
-		searchPanel.add(new JLabel("Search by ID"));
+        setSize(500, 190);
+        setLocationRelativeTo(parent);
+        setVisible(true);
+    }
 
-		textPanel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
-		textPanel.add(searchLabel = new JLabel("Enter ID:"));
-		searchLabel.setFont(this.parent.font1);
-		textPanel.add(searchField = new JTextField(20));
-		searchField.setFont(this.parent.font1);
-		searchField.setDocument(new JTextFieldLimit(20));
-		
-		buttonPanel.add(search = new JButton("Search"));
-		search.addActionListener(this);
-		search.requestFocus();
-		
-		buttonPanel.add(cancel = new JButton("Cancel"));
-		cancel.addActionListener(this);
+    // Create search container
+    private Container createSearchPane() {
+        JPanel searchPanel = new JPanel(new GridLayout(3, 1));
+        
+        searchPanel.add(new JLabel("Search by ID", SwingConstants.CENTER));
 
-		searchPanel.add(textPanel);
-		searchPanel.add(buttonPanel);
+        searchField = new JTextField(20);
+        searchField.setFont(parent.getFont());
+        searchField.setDocument(new JTextFieldLimit(20));
 
-		return searchPanel;
-	}// end searchPane
+        JPanel textPanel = new JPanel();
+        textPanel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+        textPanel.add(new JLabel("Enter ID:"));
+        textPanel.add(searchField);
 
-	// action listener for save and cancel button
-	public void actionPerformed(ActionEvent e) {
-		// if option search, search for Employee
-		if (e.getSource() == search) {
-			// try get correct valus from text field
-			try {
-				Double.parseDouble(searchField.getText());
-				this.parent.searchByIdField.setText(searchField.getText());
-				// search Employee by ID
-				this.parent.searchEmployeeById();
-				dispose();// dispose dialog
-			}// end try
-			catch (NumberFormatException num) {
-				// display message and set colour to text field if entry is wrong
-				searchField.setBackground(new Color(255, 150, 150));
-				JOptionPane.showMessageDialog(null, "Wrong ID format!");
-			}// end catch
-		}// end if
-		// else dispose dialog
-		else if (e.getSource() == cancel)
-			dispose();
-	}// end actionPerformed
-}// end class searchByIdDialog
+        JPanel buttonPanel = new JPanel();
+        searchButton = createButton(buttonPanel, "Search");
+        cancelButton = createButton(buttonPanel, "Cancel");
 
+        searchPanel.add(textPanel);
+        searchPanel.add(buttonPanel);
+
+        return searchPanel;
+    }
+
+    // Create a button and add it to the given panel
+    private JButton createButton(JPanel panel, String text) {
+        JButton button = new JButton(text);
+        button.addActionListener(this);
+        panel.add(button);
+        return button;
+    }
+
+    // Action listener for search and cancel buttons
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == searchButton) {
+            handleSearch();
+        } else if (e.getSource() == cancelButton) {
+            dispose();
+        }
+    }
+
+    // Handle the search functionality
+    private void handleSearch() {
+        try {
+            Integer.parseInt(searchField.getText().trim()); // Validate input
+            parent.setSearchByIdField(searchField.getText().trim()); 
+            parent.searchEmployeeById();
+            dispose();
+        } catch (NumberFormatException ex) {
+            searchField.setBackground(new Color(255, 150, 150));
+            JOptionPane.showMessageDialog(this, "Wrong ID format!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}

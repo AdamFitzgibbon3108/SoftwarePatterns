@@ -23,180 +23,195 @@ import javax.swing.JTextField;
 
 import net.miginfocom.swing.MigLayout;
 
+/**
+ * Dialog for adding new Employees and saving records to file.
+ */
 public class AddRecordDialog extends JDialog implements ActionListener {
-	JTextField idField, ppsField, surnameField, firstNameField, salaryField;
-	JComboBox<String> genderCombo, departmentCombo, fullTimeCombo;
-	JButton save, cancel;
-	EmployeeDetails parent;
-	// constructor for add record dialog
-	public AddRecordDialog(EmployeeDetails parent) {
-		setTitle("Add Record");
-		setModal(true);
-		this.parent = parent;
-		this.parent.setEnabled(false);
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		
-		JScrollPane scrollPane = new JScrollPane(dialogPane());
-		setContentPane(scrollPane);
-		
-		getRootPane().setDefaultButton(save);
-		
-		setSize(500, 370);
-		setLocation(350, 250);
-		setVisible(true);
-	}// end AddRecordDialog
+    private JTextField idField;
+	private JTextField ppsField;
+	private JTextField surnameField;
+	private JTextField firstNameField;
+	private JTextField salaryField;
+    private JComboBox<String> genderCombo;
+	private JComboBox<String> departmentCombo;
+	private JComboBox<String> fullTimeCombo;
+    private JButton save;
+	private JButton cancel;
+    private final EmployeeDetails parent;
 
-	// initialize dialog container
-	public Container dialogPane() {
-		JPanel empDetails, buttonPanel;
-		empDetails = new JPanel(new MigLayout());
-		buttonPanel = new JPanel();
-		JTextField field;
+    // Constructor for add record dialog
+    public AddRecordDialog(EmployeeDetails parent,
+    JComboBox<String> genderCombo, JComboBox<String> fullTimeCombo, JTextField firstNameField, JComboBox<String> departmentCombo)
+    {
+        super(parent, "Add Record", true);
+		this.idField = new JTextField();
+		this.ppsField = new JTextField();
+		this.surnameField = new JTextField();
+		this.firstNameField = firstNameField;
+		this.salaryField = new JTextField();
+		this.genderCombo = genderCombo;
+		this.departmentCombo = departmentCombo;
+		this.fullTimeCombo = fullTimeCombo;
+		this.save = new JButton();
+		this.cancel = new JButton();
+        this.parent = parent;
+        this.parent.setEnabled(false);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-		empDetails.setBorder(BorderFactory.createTitledBorder("Employee Details"));
+        JScrollPane scrollPane = new JScrollPane(createDialogPane());
+        setContentPane(scrollPane);
 
-		empDetails.add(new JLabel("ID:"), "growx, pushx");
-		empDetails.add(idField = new JTextField(20), "growx, pushx, wrap");
-		idField.setEditable(false);
-		
+        getRootPane().setDefaultButton(save);
+        setSize(500, 370);
+        setLocationRelativeTo(parent);
+        setVisible(true);
+    }
 
-		empDetails.add(new JLabel("PPS Number:"), "growx, pushx");
-		empDetails.add(ppsField = new JTextField(20), "growx, pushx, wrap");
+ // Initialize dialog container
+    private Container createDialogPane() {
+        JPanel empDetails = new JPanel(new MigLayout());
+        empDetails.setBorder(BorderFactory.createTitledBorder("Employee Details"));
 
-		empDetails.add(new JLabel("Surname:"), "growx, pushx");
-		empDetails.add(surnameField = new JTextField(20), "growx, pushx, wrap");
+        idField = createTextField(empDetails, "ID:", false);
+        idField.setText(Integer.toString(parent.getNextFreeId()));
+        ppsField = createTextField(empDetails, "PPS Number:", true);
+        surnameField = createTextField(empDetails, "Surname:", true);
+        firstNameField = createTextField(empDetails, "First Name:", true);
+        salaryField = createTextField(empDetails, "Salary:", true);
 
-		empDetails.add(new JLabel("First Name:"), "growx, pushx");
-		empDetails.add(firstNameField = new JTextField(20), "growx, pushx, wrap");
+        // Using getter methods for encapsulation
+        genderCombo = createComboBox(empDetails, "Gender:", parent.getGenderOptions());
+        departmentCombo = createComboBox(empDetails, "Department:", parent.getDepartmentOptions());
+        fullTimeCombo = createComboBox(empDetails, "Full Time:", parent.getFullTimeOptions());
 
-		empDetails.add(new JLabel("Gender:"), "growx, pushx");
-		empDetails.add(genderCombo = new JComboBox<String>(this.parent.gender), "growx, pushx, wrap");
+        JPanel buttonPanel = new JPanel();
+        save = createButton(buttonPanel, "Save");
+        cancel = createButton(buttonPanel, "Cancel");
 
-		empDetails.add(new JLabel("Department:"), "growx, pushx");
-		empDetails.add(departmentCombo = new JComboBox<String>(this.parent.department), "growx, pushx, wrap");
+        empDetails.add(buttonPanel, "span 2, growx, pushx, wrap");
+        return empDetails;
+    }
 
-		empDetails.add(new JLabel("Salary:"), "growx, pushx");
-		empDetails.add(salaryField = new JTextField(20), "growx, pushx, wrap");
 
-		empDetails.add(new JLabel("Full Time:"), "growx, pushx");
-		empDetails.add(fullTimeCombo = new JComboBox<String>(this.parent.fullTime), "growx, pushx, wrap");
+    // Create and configure a text field
+    private JTextField createTextField(JPanel panel, String label, boolean editable) {
+        panel.add(new JLabel(label), "growx, pushx");
+        JTextField textField = new JTextField(20);
+        textField.setEditable(editable);
+        if (editable) {
+            textField.setDocument(new JTextFieldLimit(label.equals("PPS Number:") ? 9 : 20));
+        }
+        panel.add(textField, "growx, pushx, wrap");
+        return textField;
+    }
 
-		buttonPanel.add(save = new JButton("Save"));
-		save.addActionListener(this);
-		save.requestFocus();
-		buttonPanel.add(cancel = new JButton("Cancel"));
-		cancel.addActionListener(this);
+    // Create and configure a combo box
+    private JComboBox<String> createComboBox(JPanel panel, String label, String[] items) {
+        panel.add(new JLabel(label), "growx, pushx");
+        JComboBox<String> comboBox = new JComboBox<>(items);
+        comboBox.setBackground(Color.WHITE);
+        panel.add(comboBox, "growx, pushx, wrap");
+        return comboBox;
+    }
 
-		empDetails.add(buttonPanel, "span 2,growx, pushx,wrap");
-		// loop through all panel components and add fonts and listeners
-		for (int i = 0; i < empDetails.getComponentCount(); i++) {
-			empDetails.getComponent(i).setFont(this.parent.font1);
-			if (empDetails.getComponent(i) instanceof JComboBox) {
-				empDetails.getComponent(i).setBackground(Color.WHITE);
-			}// end if
-			else if(empDetails.getComponent(i) instanceof JTextField){
-				field = (JTextField) empDetails.getComponent(i);
-				if(field == ppsField)
-					field.setDocument(new JTextFieldLimit(9));
-				else
-				field.setDocument(new JTextFieldLimit(20));
-			}// end else if
-		}// end for
-		idField.setText(Integer.toString(this.parent.getNextFreeId()));
-		return empDetails;
-	}
+    // Create and configure a button
+    private JButton createButton(JPanel panel, String text) {
+        JButton button = new JButton(text);
+        button.addActionListener(this);
+        panel.add(button);
+        return button;
+    }
 
-	// add record to file
-	public void addRecord() {
-		boolean fullTime = false;
-		Employee theEmployee;
+    // Add record to file
+    private void addRecord() {
+        boolean fullTime = fullTimeCombo.getSelectedItem().toString().equalsIgnoreCase("Yes");
+        Employee theEmployee = new Employee(
+            Integer.parseInt(idField.getText()),
+            ppsField.getText().toUpperCase(),
+            surnameField.getText().toUpperCase(),
+            firstNameField.getText().toUpperCase(),
+            genderCombo.getSelectedItem().toString().charAt(0),
+            departmentCombo.getSelectedItem().toString(),
+            Double.parseDouble(salaryField.getText()),
+            fullTime
+        );
+        parent.setCurrentEmployee(theEmployee);
+        parent.addRecord(theEmployee);
+        parent.displayRecords(theEmployee);
+    }
 
-		if (((String) fullTimeCombo.getSelectedItem()).equalsIgnoreCase("Yes"))
-			fullTime = true;
-		// create new Employee record with details from text fields
-		theEmployee = new Employee(Integer.parseInt(idField.getText()), ppsField.getText().toUpperCase(), surnameField.getText().toUpperCase(),
-				firstNameField.getText().toUpperCase(), genderCombo.getSelectedItem().toString().charAt(0),
-				departmentCombo.getSelectedItem().toString(), Double.parseDouble(salaryField.getText()), fullTime);
-		this.parent.currentEmployee = theEmployee;
-		this.parent.addRecord(theEmployee);
-		this.parent.displayRecords(theEmployee);
-	}
+    // Validate input fields
+    private boolean checkInput() {
+        resetFieldColors();
+        boolean valid = true;
 
-	// check for input in text fields
-	public boolean checkInput() {
-		boolean valid = true;
-		// if any of inputs are in wrong format, colour text field and display message
-		if (ppsField.getText().equals("")) {
-			ppsField.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end if
-		if (this.parent.correctPps(this.ppsField.getText().trim(), -1)) {
-			ppsField.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end if
-		if (surnameField.getText().isEmpty()) {
-			surnameField.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end if
-		if (firstNameField.getText().isEmpty()) {
-			firstNameField.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end if
-		if (genderCombo.getSelectedIndex() == 0) {
-			genderCombo.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end if
-		if (departmentCombo.getSelectedIndex() == 0) {
-			departmentCombo.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end if
-		try {// try to get values from text field
-			Double.parseDouble(salaryField.getText());
-			// check if salary is greater than 0
-			if (Double.parseDouble(salaryField.getText()) < 0) {
-				salaryField.setBackground(new Color(255, 150, 150));
-				valid = false;
-			}// end if
-		}// end try
-		catch (NumberFormatException num) {
-			salaryField.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end catch
-		if (fullTimeCombo.getSelectedIndex() == 0) {
-			fullTimeCombo.setBackground(new Color(255, 150, 150));
-			valid = false;
-		}// end if
-		return valid;
-	}// end checkInput
+        if (isFieldEmpty(ppsField) || parent.correctPps(ppsField.getText().trim(), -1)) valid = false;
+        if (isFieldEmpty(surnameField)) valid = false;
+        if (isFieldEmpty(firstNameField)) valid = false;
+        if (isComboBoxUnselected(genderCombo)) valid = false;
+        if (isComboBoxUnselected(departmentCombo)) valid = false;
+        if (!isValidSalary(salaryField)) valid = false;
+        if (isComboBoxUnselected(fullTimeCombo)) valid = false;
 
-	// set text field to white colour
-	public void setToWhite() {
-		ppsField.setBackground(Color.WHITE);
-		surnameField.setBackground(Color.WHITE);
-		firstNameField.setBackground(Color.WHITE);
-		salaryField.setBackground(Color.WHITE);
-		genderCombo.setBackground(Color.WHITE);
-		departmentCombo.setBackground(Color.WHITE);
-		fullTimeCombo.setBackground(Color.WHITE);
-	}// end setToWhite
+        if (!valid) {
+            JOptionPane.showMessageDialog(this, "Wrong values or format! Please check!");
+        }
+        return valid;
+    }
 
-	// action performed
-	public void actionPerformed(ActionEvent e) {
-		// if chosen option save, save record to file
-		if (e.getSource() == save) {
-			// if inputs correct, save record
-			if (checkInput()) {
-				addRecord();// add record to file
-				dispose();// dispose dialog
-				this.parent.changesMade = true;
-			}// end if
-			// else display message and set text fields to white colour
-			else {
-				JOptionPane.showMessageDialog(null, "Wrong values or format! Please check!");
-				setToWhite();
-			}// end else
-		}// end if
-		else if (e.getSource() == cancel)
-			dispose();// dispose dialog
-	}// end actionPerformed
-}// end class AddRecordDialog
+    // Helper method to check if a text field is empty and highlight it if so
+    private boolean isFieldEmpty(JTextField field) {
+        if (field.getText().trim().isEmpty()) {
+            field.setBackground(new Color(255, 150, 150));
+            return true;
+        }
+        return false;
+    }
+
+    // Helper method to validate salary field
+    private boolean isValidSalary(JTextField field) {
+        try {
+            double salary = Double.parseDouble(field.getText());
+            if (salary < 0) {
+                field.setBackground(new Color(255, 150, 150));
+                return false;
+            }
+            return true;
+        } catch (NumberFormatException e) {
+            field.setBackground(new Color(255, 150, 150));
+            return false;
+        }
+    }
+
+    // Helper method to check if a combo box selection is invalid
+    private boolean isComboBoxUnselected(JComboBox<String> comboBox) {
+        if (comboBox.getSelectedIndex() == 0) {
+            comboBox.setBackground(new Color(255, 150, 150));
+            return true;
+        }
+        return false;
+    }
+
+    // Reset text field backgrounds to default
+    private void resetFieldColors() {
+        ppsField.setBackground(Color.WHITE);
+        surnameField.setBackground(Color.WHITE);
+        firstNameField.setBackground(Color.WHITE);
+        salaryField.setBackground(Color.WHITE);
+        genderCombo.setBackground(Color.WHITE);
+        departmentCombo.setBackground(Color.WHITE);
+        fullTimeCombo.setBackground(Color.WHITE);
+    }
+
+    // Handle button actions
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == save && checkInput()) {
+            addRecord();
+            dispose();
+            parent.setChangesMade(true);
+        } else if (e.getSource() == cancel) {
+            dispose();
+        }
+    }
+}

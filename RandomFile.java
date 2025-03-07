@@ -1,295 +1,221 @@
-
 /*
- * 
- * This class is for accessing, creating and modifying records in a file
- * 
- * */
+ * This class is for accessing, creating, and modifying records in a file
+ */
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-
 import javax.swing.JOptionPane;
 
 public class RandomFile {
-	private RandomAccessFile output;
-	private RandomAccessFile input;
+    private RandomAccessFile output;
+    private RandomAccessFile input;
 
-	// Create new file
-	public void createFile(String fileName) {
-		RandomAccessFile file = null;
+    // Create new file
+    public void createFile(String fileName) {
+        try (RandomAccessFile file = new RandomAccessFile(fileName, "rw")) {
+            // File created successfully
+        } catch (IOException e) {
+            showError("Error processing file!");
+        }
+    }
 
-		try // open file for reading and writing
-		{
-			file = new RandomAccessFile(fileName, "rw");
+    // Open file for adding or modifying records
+    public void openWriteFile(String fileName) {
+        output = openFile(fileName, "rw");
+    }
 
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "Error processing file!");
-			System.exit(1);
-		} // end catch
+    // Close file for writing
+    public void closeWriteFile() {
+        closeFile(output);
+    }
 
-		finally {
-			try {
-				if (file != null)
-					file.close(); // close file
-			} // end try
-			catch (IOException ioException) {
-				JOptionPane.showMessageDialog(null, "Error closing file!");
-				System.exit(1);
-			} // end catch
-		} // end finally
-	} // end createFile
+    // Add records to file
+    public long addRecords(Employee employeeToAdd) {
+        if (output == null) {
+            showError("File is not opened for writing!");
+            return -1;
+        }
 
-	// Open file for adding or changing records
-	public void openWriteFile(String fileName) {
-		try // open file
-		{
-			output = new RandomAccessFile(fileName, "rw");
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "File does not exist!");
-		} // end catch
-	} // end method openFile
+        try {
+            RandomAccessEmployeeRecord record = new RandomAccessEmployeeRecord(
+                employeeToAdd.getEmployeeId(), employeeToAdd.getPps(),
+                employeeToAdd.getSurname(), employeeToAdd.getFirstName(),
+                employeeToAdd.getGender(), employeeToAdd.getDepartment(),
+                employeeToAdd.getSalary(), employeeToAdd.getFullTime()
+            );
 
-	// Close file for adding or changing records
-	public void closeWriteFile() {
-		try // close file and exit
-		{
-			if (output != null)
-				output.close();
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "Error closing file!");
-			System.exit(1);
-		} // end catch
-	} // end closeFile
+            output.seek(output.length()); // Move to end of file
+            record.write(output);
+            return output.length() - RandomAccessEmployeeRecord.SIZE; // Return position
+        } catch (IOException e) {
+            showError("Error writing to file!");
+            return -1;
+        }
+    }
 
-	// Add records to file
-	public long addRecords(Employee employeeToAdd) {
-		Employee newEmployee = employeeToAdd;
-		long currentRecordStart = 0;
+    // Generic method to open a file
+    private RandomAccessFile openFile(String fileName, String mode) {
+        try {
+            return new RandomAccessFile(fileName, mode);
+        } catch (IOException e) {
+            showError("File does not exist!");
+            return null;
+        }
+    }
 
-		// object to be written to file
-		RandomAccessEmployeeRecord record;
+    // Generic method to close a file
+    private void closeFile(RandomAccessFile file) {
+        if (file != null) {
+            try {
+                file.close();
+            } catch (IOException e) {
+                showError("Error closing file!");
+            }
+        }
+    }
 
-		try // output values to file
-		{
-			record = new RandomAccessEmployeeRecord(newEmployee.getEmployeeId(), newEmployee.getPps(),
-					newEmployee.getSurname(), newEmployee.getFirstName(), newEmployee.getGender(),
-					newEmployee.getDepartment(), newEmployee.getSalary(), newEmployee.getFullTime());
+ // Display error messages with debugging
+    private void showError(String message, Exception e) {
+        JOptionPane.showMessageDialog(null, message);
+        e.printStackTrace(); // Print error to console for debugging
+    }
 
-			output.seek(output.length());// Look for proper position
-			record.write(output);// Write object to file
-			currentRecordStart = output.length();
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "Error writing to file!");
-		} // end catch
 
-		return currentRecordStart - RandomAccessEmployeeRecord.SIZE;// Return
-																	// position
-																	// where
-																	// object
-																	// starts in
-																	// the file
-	}// end addRecords
+ // Change details for an existing record
+    public void changeRecords(Employee newDetails, long byteToStart) {
+        try {
+            output.seek(byteToStart); // Locate position
+            new RandomAccessEmployeeRecord(
+                newDetails.getEmployeeId(),
+                newDetails.getPps(),
+                newDetails.getSurname(),
+                newDetails.getFirstName(),
+                newDetails.getGender(),
+                newDetails.getDepartment(),
+                newDetails.getSalary(),
+                newDetails.getFullTime()
+            ).write(output); // Write new data
+        } catch (IOException e) {
+            showError("Error writing to file!");
+        }
+    }
 
-	// Change details for existing object
-	public void changeRecords(Employee newDetails, long byteToStart) {
-		long currentRecordStart = byteToStart;
-		// object to be written to file
-		RandomAccessEmployeeRecord record;
-		Employee oldDetails = newDetails;
-		try // output values to file
-		{
-			record = new RandomAccessEmployeeRecord(oldDetails.getEmployeeId(), oldDetails.getPps(),
-					oldDetails.getSurname(), oldDetails.getFirstName(), oldDetails.getGender(),
-					oldDetails.getDepartment(), oldDetails.getSalary(), oldDetails.getFullTime());
+    // Delete a record (mark as inactive)
+    public void deleteRecords(long byteToStart) {
+        try {
+            output.seek(byteToStart); // Locate position
+            new RandomAccessEmployeeRecord().write(output); // Write empty record
+        } catch (IOException e) {
+            showError("Error writing to file!");
+        }
+    }
 
-			output.seek(currentRecordStart);// Look for proper position
-			record.write(output);// Write object to file
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "Error writing to file!");
-		} // end catch
-	}// end changeRecors
+    // Open file for reading
+    public void openReadFile(String fileName) {
+        try {
+            input = new RandomAccessFile(fileName, "r");
+        } catch (IOException e) {
+            showError("File is not supported!");
+        }
+    }
 
-	// Delete existing object
-	public void deleteRecords(long byteToStart) {
-		long currentRecordStart = byteToStart;
+    // Close file after reading
+    public void closeReadFile() {
+        try {
+            if (input != null) input.close();
+        } catch (IOException e) {
+            showError("Error closing file!");
+        }
+    }
 
-		// object to be written to file
-		RandomAccessEmployeeRecord record;
-		;
+    // Get position of the first record
+    public long getFirst() {
+        return 0;
+    }
 
-		try // output values to file
-		{
-			record = new RandomAccessEmployeeRecord();// Create empty object
-			output.seek(currentRecordStart);// Look for proper position
-			record.write(output);// Replace existing object with empty object
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "Error writing to file!");
-		} // end catch
-	}// end deleteRecords
+    // Get position of the last record
+    public long getLast() {
+        try {
+            return input.length() - RandomAccessEmployeeRecord.SIZE;
+        } catch (IOException e) {
+            return 0;
+        }
+    }
 
-	// Open file for reading
-	public void openReadFile(String fileName) {
-		try // open file
-		{
-			input = new RandomAccessFile(fileName, "r");
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "File is not suported!");
-		} // end catch
-	} // end method openFile
+    // Get position of the next record
+    public long getNext(long readFrom) {
+        try {
+            return (readFrom + RandomAccessEmployeeRecord.SIZE == input.length()) ? 0 : readFrom + RandomAccessEmployeeRecord.SIZE;
+        } catch (IOException e) {
+            return readFrom;
+        }
+    }
 
-	// Close file
-	public void closeReadFile() {
-		try // close file and exit
-		{
-			if (input != null)
-				input.close();
-		} // end try
-		catch (IOException ioException) {
-			JOptionPane.showMessageDialog(null, "Error closing file!");
-			System.exit(1);
-		} // end catch
-	} // end method closeFile
+    // Get position of the previous record
+    public long getPrevious(long readFrom) {
+        try {
+            return (readFrom == 0) ? input.length() - RandomAccessEmployeeRecord.SIZE : readFrom - RandomAccessEmployeeRecord.SIZE;
+        } catch (IOException e) {
+            return readFrom;
+        }
+    }
 
-	// Get position of first record in file
-	public long getFirst() {
-		long byteToStart = 0;
+    // Read record from file at specified position
+    public Employee readRecords(long byteToStart) {
+        try {
+            input.seek(byteToStart);
+            RandomAccessEmployeeRecord record = new RandomAccessEmployeeRecord();
+            record.read(input);
+            return record;
+        } catch (IOException e) {
+            return null;
+        }
+    }
 
-		try {// try to get file
-			input.length();
-		} // end try
-		catch (IOException e) {
-		}// end catch
-		
-		return byteToStart;
-	}// end getFirst
+    // Check if a PPS number already exists in the file
+    public boolean isPpsExist(String pps, long currentByteStart) {
+        return checkConditionInFile(currentByteStart, record -> record.getPps().trim().equalsIgnoreCase(pps), "PPS number already exists!");
+    }
 
-	// Get position of last record in file
-	public long getLast() {
-		long byteToStart = 0;
+    // Check if any record contains a valid ID
+    public boolean isSomeoneToDisplay() {
+        return checkConditionInFile(0, record -> record.getEmployeeId() > 0, null);
+    }
 
-		try {// try to get position of last record
-			byteToStart = input.length() - RandomAccessEmployeeRecord.SIZE;
-		}// end try 
-		catch (IOException e) {
-		}// end catch
+    // Helper method to check a condition in the file
+    private boolean checkConditionInFile(long startByte, RecordCondition condition, String errorMessage) {
+        long currentByte = startByte;
+        boolean found = false;
 
-		return byteToStart;
-	}// end getFirst
+        try {
+            while (currentByte < input.length() && !found) {
+                if (currentByte != startByte) {
+                    input.seek(currentByte);
+                    RandomAccessEmployeeRecord record = new RandomAccessEmployeeRecord();
+                    record.read(input);
+                    if (condition.test(record)) {
+                        found = true;
+                        if (errorMessage != null) showError(errorMessage);
+                    }
+                }
+                currentByte += RandomAccessEmployeeRecord.SIZE;
+            }
+        } catch (IOException e) {
+            return false;
+        }
+        return found;
+    }
 
-	// Get position of next record in file
-	public long getNext(long readFrom) {
-		long byteToStart = readFrom;
+    // Functional interface for condition checking
+    @FunctionalInterface
+    private interface RecordCondition {
+        boolean test(RandomAccessEmployeeRecord record);
+    }
 
-		try {// try to read from file
-			input.seek(byteToStart);// Look for proper position in file
-			// if next position is end of file go to start of file, else get next position
-			if (byteToStart + RandomAccessEmployeeRecord.SIZE == input.length())
-				byteToStart = 0;
-			else
-				byteToStart = byteToStart + RandomAccessEmployeeRecord.SIZE;
-		} // end try
-		catch (NumberFormatException e) {
-		} // end catch
-		catch (IOException e) {
-		}// end catch
-		return byteToStart;
-	}// end getFirst
+    // Display error messages
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(null, message);
+    }
+}
 
-	// Get position of previous record in file
-	public long getPrevious(long readFrom) {
-		long byteToStart = readFrom;
-
-		try {// try to read from file
-			input.seek(byteToStart);// Look for proper position in file
-			// if previous position is start of file go to end of file, else get previous position
-			if (byteToStart == 0)
-				byteToStart = input.length() - RandomAccessEmployeeRecord.SIZE;
-			else
-				byteToStart = byteToStart - RandomAccessEmployeeRecord.SIZE;
-		} // end try
-		catch (NumberFormatException e) {
-		} // end catch
-		catch (IOException e) {
-		}// end catch
-		return byteToStart;
-	}// end getPrevious
-
-	// Get object from file in specified position
-	public Employee readRecords(long byteToStart) {
-		Employee thisEmp = null;
-		RandomAccessEmployeeRecord record = new RandomAccessEmployeeRecord();
-
-		try {// try to read file and get record
-			input.seek(byteToStart);// Look for proper position in file
-			record.read(input);// Read record from file
-		} // end try
-		catch (IOException e) {
-		}// end catch
-		
-		thisEmp = record;
-
-		return thisEmp;
-	}// end readRecords
-
-	// Check if PPS Number already in use
-	public boolean isPpsExist(String pps, long currentByteStart) {
-		RandomAccessEmployeeRecord record = new RandomAccessEmployeeRecord();
-		boolean ppsExist = false;
-		long oldByteStart = currentByteStart;
-		long currentByte = 0;
-
-		try {// try to read from file and look for PPS Number
-			// Start from start of file and loop until PPS Number is found or search returned to start position
-			while (currentByte != input.length() && !ppsExist) {
-				//if PPS Number is in position of current object - skip comparison
-				if (currentByte != oldByteStart) {
-					input.seek(currentByte);// Look for proper position in file
-					record.read(input);// Get record from file
-					// If PPS Number already exist in other record display message and stop search
-					if (record.getPps().trim().equalsIgnoreCase(pps)) {
-						ppsExist = true;
-						JOptionPane.showMessageDialog(null, "PPS number already exist!");
-					}// end if
-				}// end if
-				currentByte = currentByte + RandomAccessEmployeeRecord.SIZE;
-			}// end while
-		} // end try
-		catch (IOException e) {
-		}// end catch
-
-		return ppsExist;
-	}// end isPpsExist
-
-	// Check if any record contains valid ID - greater than 0
-	public boolean isSomeoneToDisplay() {
-		boolean someoneToDisplay = false;
-		long currentByte = 0;
-		RandomAccessEmployeeRecord record = new RandomAccessEmployeeRecord();
-
-		try {// try to read from file and look for ID
-			// Start from start of file and loop until valid ID is found or search returned to start position
-			while (currentByte != input.length() && !someoneToDisplay) {
-				input.seek(currentByte);// Look for proper position in file
-				record.read(input);// Get record from file
-				// If valid ID exist in stop search
-				if (record.getEmployeeId() > 0)
-					someoneToDisplay = true;
-				currentByte = currentByte + RandomAccessEmployeeRecord.SIZE;
-			}// end while
-		}// end try
-		catch (IOException e) {
-		}// end catch
-
-		return someoneToDisplay;
-	}// end isSomeoneToDisplay
-}// end class RandomFile
 
